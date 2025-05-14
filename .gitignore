@@ -2,3 +2,7 @@ sentiment-env/
 *.h5
 *.pkl
 *.csv
+goemotions_bert/
+*.pt
+*.bin
+*.dylib
