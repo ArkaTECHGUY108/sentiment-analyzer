@@ -1,0 +1,4 @@
+sentiment-env/
+*.h5
+*.pkl
+*.csv

@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: sentiment-analyzer
+    env: python
+    buildCommand: ""
+    startCommand: python app.py
+    envVars:
+      - key: FLASK_ENV
+        value: production
+      - key: FLASK_APP
+        value: app  

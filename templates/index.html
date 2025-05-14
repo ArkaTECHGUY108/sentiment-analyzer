@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Customer Sentiment Analyzer</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: 'Poppins', sans-serif;
+      background: linear-gradient(to right, #667eea, #764ba2);
+      color: #fff;
+    }
+
+    .hero {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 60px 10%;
+      background: #fff;
+      color: #111;
+    }
+
+    .hero-text {
+      max-width: 50%;
+    }
+
+    .hero-text h1 {
+      font-size: 3rem;
+      margin: 0;
+    }
+
+    .hero-text p {
+      margin-top: 15px;
+      font-size: 1.1rem;
+      color: #444;
+    }
+
+    .hero-image img {
+      max-width: 350px;
+      border-radius: 20px;
+    }
+
+    .app-container {
+      margin: 40px auto;
+      max-width: 700px;
+      padding: 30px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 20px;
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
+      text-align: center;
+    }
+
+    textarea {
+      width: 90%;
+      height: 120px;
+      padding: 15px;
+      border: none;
+      border-radius: 10px;
+      font-size: 16px;
+      outline: none;
+      resize: none;
+      font-family: inherit;
+    }
+
+    button {
+      margin-top: 20px;
+      padding: 12px 30px;
+      font-size: 16px;
+      background-color: #00c9a7;
+      border: none;
+      border-radius: 30px;
+      cursor: pointer;
+      color: #fff;
+      font-weight: 600;
+      transition: background 0.3s ease;
+    }
+
+    button:hover {
+      background-color: #02a088;
+    }
+
+    .result {
+      margin-top: 25px;
+      font-size: 20px;
+      font-weight: bold;
+      animation: fadeIn 0.5s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .bar { height: 14px; background: #fff; border-radius: 7px; margin: 5px 0; }
+    .fill { height: 100%; background: #00c9a7; border-radius: 7px; }
+
+    .w-10 { width: 10%; }
+    .w-30 { width: 30%; }
+    .w-50 { width: 50%; }
+    .w-70 { width: 70%; }
+    .w-90 { width: 90%; }
+    .w-100 { width: 100%; }
+
+    .emotion-block { margin-top: 10px; font-size: 18px; }
+
+    .brand {
+      font-weight: bold;
+      font-size: 1.3rem;
+      color: #764ba2;
+      margin-bottom: 10px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="hero">
+    <div class="hero-text">
+      <div class="brand">🧠 SentiReader</div>
+      <h1>Customer Sentiment<br>Analysis Tool</h1>
+      <p>Instantly analyze the emotional tone of user feedback using AI-powered deep learning.</p>
+    </div>
+    <div class="hero-image">
+      <img src="{{ url_for('static', filename='thinker.png') }}" alt="AI Brain" width="400">
+    </div>
+  </div>
+
+  <div class="app-container">
+    <h2>Test it Yourself 💬</h2>
+    <form method="POST">
+      <textarea name="text" placeholder="Type your feedback here..."></textarea><br>
+      <button type="submit">Analyze Sentiment</button>
+    </form>
+
+    {% if sentiment %}
+      <div class="result">🗣️ Predicted Sentiment: {{ sentiment }}</div>
+    {% endif %}
+
+    {% if tone %}
+      <div class="result">🎯 Detected Tone: {{ tone }}</div>
+    {% endif %}
+
+    {% if emotion_list %}
+      <div class="result">
+        🎭 Top Emotions Detected:
+        {% for emo, emoji, score in emotion_list %}
+          {% set width_class = 'w-10' %}
+          {% if score * 100 >= 90 %}
+            {% set width_class = 'w-100' %}
+          {% elif score * 100 >= 70 %}
+            {% set width_class = 'w-90' %}
+          {% elif score * 100 >= 50 %}
+            {% set width_class = 'w-70' %}
+          {% elif score * 100 >= 30 %}
+            {% set width_class = 'w-50' %}
+          {% elif score * 100 >= 10 %}
+            {% set width_class = 'w-30' %}
+          {% endif %}
+          <div class="emotion-block">
+            {{ emoji }} <strong>{{ emo.capitalize() }}</strong> — {{ (score * 100) | round(1) }}%
+            <div class="bar"><div class="fill {{ width_class }}"></div></div>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+  </div>
+
+</body>
+</html>
