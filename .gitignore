@@ -6,3 +6,4 @@ goemotions_bert/
 *.pt
 *.bin
 *.dylib
+google-research/
