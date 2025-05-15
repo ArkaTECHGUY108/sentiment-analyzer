@@ -7,3 +7,7 @@ goemotions_bert/
 *.bin
 *.dylib
 google-research/
+*.h5
+*.pkl
+*.csv
+google-research/
