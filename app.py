@@ -1,32 +1,49 @@
 from flask import Flask, render_template, request
 import tensorflow as tf
 import pickle
+import os
+import gdown
 from tensorflow.keras.preprocessing.sequence import pad_sequences
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
-import numpy as np
 
-# Load Positive/Negative LSTM model
-model = tf.keras.models.load_model("sentiment_lstm_model.h5")
-with open("tokenizer.pkl", "rb") as f:
-    tokenizer = pickle.load(f)
-
-# Load Multi-label Emotion LSTM model
-emotion_model = tf.keras.models.load_model("goemotions_lstm_model.h5")
-with open("goemotions_tokenizer.pkl", "rb") as f:
-    emotion_tokenizer = pickle.load(f)
-with open("goemotions_mlb.pkl", "rb") as f:
-    mlb = pickle.load(f)
-
-# Emoji map
-emoji_map = {
-    "admiration": "😍", "amusement": "😂", "anger": "😠", "annoyance": "😒", "approval": "👍",
-    "caring": "🤗", "confusion": "😕", "curiosity": "🤔", "desire": "😋", "disappointment": "😞",
-    "disapproval": "👎", "disgust": "🤮", "embarrassment": "😳", "excitement": "😃", "fear": "😨",
-    "gratitude": "🙏", "grief": "😭", "joy": "😊", "love": "❤️", "nervousness": "😬",
-    "optimism": "🌞", "pride": "😎", "realization": "💡", "relief": "😌", "remorse": "😔",
-    "sadness": "😢", "surprise": "😮", "neutral": "😐"
+# ---------------- Google Drive IDs ---------------- #
+file_ids = {
+    "goemotions_model": "10g9HcBEAMjjyW8P8aAnmMSIK5RA2IGMS",
+    "goemotions_tokenizer": "1_b6vFEZ_kOMD9O4fpGXZSH6SjTBObX3h",
+    "goemotions_mlb": "1bHJXYY_QNiLwF0yry9fSM2PDrb6HaEM1",
+    "sentiment_model": "1Hb3o7UQe4oaWAaPLa9sO_0jhdgUFAVtO",
+    "tokenizer": "1Kzd_2GWB0MpwzuiUhXH9cyRllmGrwiR0"
 }
 
+# ---------------- File Paths ---------------- #
+file_paths = {
+    "goemotions_model": "goemotions_lstm_model.h5",
+    "goemotions_tokenizer": "goemotions_tokenizer.pkl",
+    "goemotions_mlb": "goemotions_mlb.pkl",
+    "sentiment_model": "sentiment_lstm_model.h5",
+    "tokenizer": "tokenizer.pkl"
+}
+
+# ---------------- Download if Missing ---------------- #
+for key, path in file_paths.items():
+    if not os.path.exists(path):
+        print(f"📥 Downloading {path}...")
+        gdown.download(f"https://drive.google.com/uc?export=download&id={file_ids[key]}", path, quiet=False)
+
+# ---------------- Load Models ---------------- #
+sentiment_model = tf.keras.models.load_model(file_paths["sentiment_model"])
+goemotions_model = tf.keras.models.load_model(file_paths["goemotions_model"])
+
+with open(file_paths["tokenizer"], "rb") as f:
+    tokenizer = pickle.load(f)
+
+with open(file_paths["goemotions_tokenizer"], "rb") as f:
+    goemotions_tokenizer = pickle.load(f)
+
+with open(file_paths["goemotions_mlb"], "rb") as f:
+    goemotions_mlb = pickle.load(f)
+
+# ---------------- Flask App ---------------- #
 app = Flask(__name__, static_folder='static')
 
 @app.route("/", methods=["GET", "POST"])
@@ -38,9 +55,10 @@ def index():
     if request.method == "POST":
         text = request.form["text"]
 
-        # VADER Tone Detection
+        # 1. Tone Analysis
         analyzer = SentimentIntensityAnalyzer()
         scores = analyzer.polarity_scores(text)
+
         if scores['compound'] >= 0.5:
             tone = "Happy 😊"
         elif scores['compound'] <= -0.5:
@@ -52,25 +70,23 @@ def index():
         else:
             tone = "Neutral 😐"
 
-        # Binary Sentiment (Positive/Negative)
+        # 2. Sentiment Classification (Binary)
         seq = tokenizer.texts_to_sequences([text])
         padded = pad_sequences(seq, maxlen=100)
-        pred = model.predict(padded)[0][0]
+        pred = sentiment_model.predict(padded)[0][0]
         sentiment = "Positive ✅" if pred > 0.5 else "Negative ❌"
 
-        # Multi-label Emotion Detection
-        emo_seq = emotion_tokenizer.texts_to_sequences([text])
-        emo_pad = pad_sequences(emo_seq, maxlen=100)
-        emo_pred = emotion_model.predict(emo_pad)[0]
+        # 3. GoEmotions (Multi-label)
+        seq2 = goemotions_tokenizer.texts_to_sequences([text])
+        pad2 = pad_sequences(seq2, maxlen=100)
+        emotion_probs = goemotions_model.predict(pad2)[0]
+        top_indices = emotion_probs.argsort()[-3:][::-1]
+        top_scores = emotion_probs[top_indices]
 
-        # Get top 3 emotions
-        top_indices = np.argsort(emo_pred)[::-1][:3]
-        # Load class map manually (GoEmotions strings)
-        with open("google-research/goemotions/data/emotions.txt", "r") as f:
-            emotion_labels = f.read().splitlines()
+        emotions = goemotions_mlb.classes_
+        emojis = ["😄", "😢", "😡", "😱", "🤔", "😎", "❤️", "😂", "🙄", "😴", "😬", "😇", "😨", "😍", "😭", "😳", "😤", "😷", "😈", "💔", "💀", "👀", "🎉", "👍", "🙏", "🔥", "🌟"]
 
-        emotion_list = [(emotion_labels[i], emoji_map.get(emotion_labels[i], "❓"), float(emo_pred[i])) for i in top_indices]
-
+        emotion_list = [(emotions[i], emojis[i % len(emojis)], float(top_scores[j])) for j, i in enumerate(top_indices)]
 
     return render_template("index.html", sentiment=sentiment, tone=tone, emotion_list=emotion_list)
 

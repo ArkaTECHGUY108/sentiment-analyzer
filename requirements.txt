@@ -96,9 +96,9 @@ wordcloud==1.9.4
 wrapt==1.17.2
 xxhash==3.5.0
 yarl==1.20.0
-
-Flask
+gdown
 tensorflow
+flask
 nltk
 emoji
 contractions
